@@ -1,0 +1,99 @@
+
+CREATE TABLE User_Table (
+    user_id INT PRIMARY KEY,
+    uname VARCHAR(50),
+    email VARCHAR(50)
+);
+
+CREATE TABLE Package (
+    pkg_id INT PRIMARY KEY,
+    title VARCHAR(100),
+    price DECIMAL(10,2)
+);
+
+CREATE TABLE Booking (
+    booking_id INT PRIMARY KEY,
+    user_id INT,
+    pkg_id INT,
+    booking_date DATE,
+    members INT,
+    FOREIGN KEY (user_id) REFERENCES User_Table(user_id),
+    FOREIGN KEY (pkg_id) REFERENCES Package(pkg_id)
+);
+
+
+
+
+
+
+Find users who booked packages > 50,000
+
+
+SELECT U.uname
+FROM User_Table U
+WHERE U.user_id IN (
+    SELECT B.user_id
+    FROM Booking B
+    JOIN Package P ON B.pkg_id = P.pkg_id
+    WHERE P.price > 50000
+);
+
+
+
+
+Create View
+
+
+
+CREATE VIEW UserBookingView AS
+SELECT U.uname, P.title AS pkg_title, B.members
+FROM Booking B
+JOIN User_Table U ON B.user_id = U.user_id
+JOIN Package P ON B.pkg_id = P.pkg_id;
+
+
+
+Trigger: Prevent booking if members > 10
+
+
+
+
+
+
+DELIMITER //
+
+CREATE TRIGGER prevent_large_booking
+BEFORE INSERT ON Booking
+FOR EACH ROW
+BEGIN
+    IF NEW.members > 10 THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Maximum 10 members allowed per booking!';
+    END IF;
+END;
+//
+
+DELIMITER ;
+
+
+
+
+
+
+
+
+increase package price by a percentage
+
+
+
+
+DELIMITER //
+
+CREATE PROCEDURE increase_price(IN p_percent DECIMAL(5,2))
+BEGIN
+    UPDATE Package
+    SET price = price + (price * p_percent / 100);
+END;
+//
+
+DELIMITER ;

@@ -1,0 +1,97 @@
+
+CREATE TABLE Student(
+  sid INT PRIMARY KEY,
+  sname VARCHAR(50),
+  cname VARCHAR(50),
+  branch VARCHAR(30)
+);
+
+CREATE TABLE Register(
+  sid INT,
+  course VARCHAR(50),
+  FOREIGN KEY (sid) REFERENCES Student(sid)
+);
+
+
+
+
+Correlated Subquery
+
+
+
+SELECT s.sid, s.sname, s.branch
+FROM Student s
+WHERE (SELECT COUNT(*) FROM Register r WHERE r.sid = s.sid) > 2;
+
+
+
+
+
+
+
+CREATE TABLE Sailor (
+  sailor_id INT PRIMARY KEY,
+  sname VARCHAR(50),
+  age INT
+);
+
+CREATE TABLE Boat (
+  boat_id INT PRIMARY KEY,
+  bname VARCHAR(50),
+  color VARCHAR(20)
+);
+
+CREATE TABLE Reservation (
+  sailor_id INT,
+  boat_id INT,
+  day DATE,
+  FOREIGN KEY (sailor_id) REFERENCES Sailor(sailor_id),
+  FOREIGN KEY (boat_id) REFERENCES Boat(boat_id)
+);
+
+
+Trigger — Prevent Same Boat Reservation Twice in Same Day
+
+
+
+DELIMITER $$
+
+CREATE TRIGGER prevent_duplicate_reservation
+BEFORE INSERT ON Reservation
+FOR EACH ROW
+BEGIN
+IF EXISTS (
+  SELECT * FROM Reservation
+  WHERE sailor_id = NEW.sailor_id
+  AND boat_id = NEW.boat_id
+  AND day = NEW.day
+)
+THEN
+  SIGNAL SQLSTATE '45000'
+  SET MESSAGE_TEXT = 'Duplicate reservation not allowed on the same day!';
+END IF;
+END$$
+
+DELIMITER ;
+
+
+
+Stored Procedure — Delete a Sailor
+
+
+
+
+DELIMITER $$
+
+CREATE PROCEDURE delete_sailor(IN sid_in INT)
+BEGIN
+  DELETE FROM Reservation WHERE sailor_id = sid_in;
+  DELETE FROM Sailor WHERE sailor_id = sid_in;
+END$$
+
+DELIMITER ;
+
+
+
+
+CALL delete_sailor(10);

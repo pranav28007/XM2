@@ -1,0 +1,93 @@
+
+CREATE TABLE Customer (
+    cust_id INT PRIMARY KEY,
+    cname VARCHAR(50),
+    email VARCHAR(50),
+    address VARCHAR(100)
+);
+
+CREATE TABLE Product (
+    prod_id INT PRIMARY KEY,
+    pname VARCHAR(50),
+    price DECIMAL(10,2),
+    stock INT
+);
+
+CREATE TABLE Orders (
+    order_id INT PRIMARY KEY,
+    cust_id INT,
+    prod_id INT,
+    quantity INT,
+    FOREIGN KEY (cust_id) REFERENCES Customer(cust_id),
+    FOREIGN KEY (prod_id) REFERENCES Product(prod_id)
+);
+
+
+
+
+Customers with orders above average total amount
+
+
+
+
+
+
+
+SELECT cname
+FROM Customer
+WHERE cust_id IN (
+    SELECT cust_id
+    FROM Orders O
+    JOIN Product P ON O.prod_id = P.prod_id
+    GROUP BY cust_id
+    HAVING SUM(P.price * O.quantity) > (
+        SELECT AVG(total_amount)
+        FROM (
+            SELECT SUM(P2.price * O2.quantity) AS total_amount
+            FROM Orders O2
+            JOIN Product P2 ON O2.prod_id = P2.prod_id
+            GROUP BY O2.cust_id
+        ) AS t
+    )
+);
+
+
+
+Prevent duplicate Product_ID
+
+
+
+
+
+DELIMITER //
+
+CREATE TRIGGER prevent_duplicate_product
+BEFORE INSERT ON Product
+FOR EACH ROW
+BEGIN
+    IF EXISTS(SELECT 1 FROM Product WHERE prod_id = NEW.prod_id) THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Duplicate Product_ID not allowed!';
+    END IF;
+END;
+//
+
+DELIMITER ;
+
+
+
+Update stock quantity after each order
+
+
+
+
+DELIMITER //
+
+CREATE PROCEDURE update_stock_after_order(IN p_prod_id INT, IN p_qty INT)
+BEGIN
+    UPDATE Product
+    SET stock = stock - p_qty
+    WHERE prod_id = p_prod_id;
+END;
+//
+
+DELIMITER ;

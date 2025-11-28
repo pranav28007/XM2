@@ -1,0 +1,96 @@
+
+CREATE TABLE Restaurant (
+    rest_id INT PRIMARY KEY,
+    rname VARCHAR(50),
+    area VARCHAR(50)
+);
+
+CREATE TABLE Customer (
+    cust_id INT PRIMARY KEY,
+    cname VARCHAR(50),
+    phone VARCHAR(15)
+);
+
+CREATE TABLE Orders (
+    order_id INT PRIMARY KEY,
+    cust_id INT,
+    rest_id INT,
+    amount DECIMAL(10,2),
+    order_date DATE,
+    FOREIGN KEY (cust_id) REFERENCES Customer(cust_id),
+    FOREIGN KEY (rest_id) REFERENCES Restaurant(rest_id)
+);
+
+
+
+Customers with order amount > average
+
+
+
+
+
+SELECT cname
+FROM Customer
+WHERE cust_id IN (
+    SELECT cust_id
+    FROM Orders
+    GROUP BY cust_id
+    HAVING AVG(amount) > (
+        SELECT AVG(amount) FROM Orders
+    )
+);
+
+
+
+View
+
+
+
+
+
+CREATE VIEW OrderView AS
+SELECT R.rname, C.cname, O.amount
+FROM Orders O
+JOIN Restaurant R ON O.rest_id = R.rest_id
+JOIN Customer C ON O.cust_id = C.cust_id;
+
+
+
+
+
+Trigger: Prevent duplicate order_id
+
+
+
+
+
+DELIMITER //
+
+CREATE TRIGGER prevent_duplicate_order
+BEFORE INSERT ON Orders
+FOR EACH ROW
+BEGIN
+    IF EXISTS (SELECT 1 FROM Orders WHERE order_id = NEW.order_id) THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Duplicate order id!';
+    END IF;
+END;
+//
+
+DELIMITER ;
+
+
+Procedure: Delete all orders of customer
+
+
+
+
+DELIMITER //
+
+CREATE PROCEDURE delete_orders_by_customer(IN p_cust_id INT)
+BEGIN
+    DELETE FROM Orders WHERE cust_id = p_cust_id;
+END;
+//
+
+DELIMITER ;

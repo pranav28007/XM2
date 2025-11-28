@@ -1,0 +1,84 @@
+
+CREATE TABLE Student (
+    sid INT PRIMARY KEY,
+    sname VARCHAR(50),
+    branch VARCHAR(30)
+);
+
+CREATE TABLE Room (
+    room_no INT PRIMARY KEY,
+    type VARCHAR(10),
+    rent DECIMAL(10,2),
+    capacity INT
+);
+
+CREATE TABLE Allotment (
+    allot_id INT PRIMARY KEY,
+    sid INT,
+    room_no INT,
+    FOREIGN KEY (sid) REFERENCES Student(sid),
+    FOREIGN KEY (room_no) REFERENCES Room(room_no)
+);
+
+
+
+
+
+
+Student name, branch, room number for AC rooms
+
+
+
+SELECT S.sname, S.branch, R.room_no
+FROM Student S
+JOIN Allotment A ON S.sid = A.sid
+JOIN Room R ON A.room_no = R.room_no
+WHERE R.type = 'AC';
+
+
+
+
+Prevent allotment if room capacity is full
+
+
+
+
+
+
+DELIMITER //
+
+CREATE TRIGGER check_room_capacity
+BEFORE INSERT ON Allotment
+FOR EACH ROW
+BEGIN
+    DECLARE v_count INT;
+    DECLARE v_capacity INT;
+
+    SELECT COUNT(*) INTO v_count FROM Allotment WHERE room_no = NEW.room_no;
+    SELECT capacity INTO v_capacity FROM Room WHERE room_no = NEW.room_no;
+
+    IF v_count >= v_capacity THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Room capacity full! Cannot allot more students.';
+    END IF;
+END;
+//
+
+DELIMITER ;
+
+
+
+Update rent based on room type
+
+
+
+DELIMITER //
+
+CREATE PROCEDURE update_rent_by_type(IN p_room_type VARCHAR(10), IN p_new_rent DECIMAL(10,2))
+BEGIN
+    UPDATE Room
+    SET rent = p_new_rent
+    WHERE type = p_room_type;
+END;
+//
+
+DELIMITER ;

@@ -1,0 +1,66 @@
+CREATE TABLE Customer (
+    cust_id INT PRIMARY KEY,
+    cname VARCHAR(50),
+    phone VARCHAR(15),
+    type VARCHAR(20)
+);
+
+CREATE TABLE Account (
+    acc_no INT PRIMARY KEY,
+    cust_id INT,
+    balance DECIMAL(10,2),
+    FOREIGN KEY (cust_id) REFERENCES Customer(cust_id)
+);
+
+
+
+
+Customers with more than one account
+
+
+
+
+SELECT cname
+FROM Customer
+WHERE cust_id IN (
+    SELECT cust_id
+    FROM Account
+    GROUP BY cust_id
+    HAVING COUNT(acc_no) > 1
+);
+
+
+
+Trigger: Stop withdrawal if balance < 1000
+
+
+
+DELIMITER //
+
+CREATE TRIGGER prevent_low_balance
+BEFORE UPDATE ON Account
+FOR EACH ROW
+BEGIN
+    IF NEW.balance < 1000 THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Balance cannot go below 1000!';
+    END IF;
+END;
+//
+
+DELIMITER ;
+
+
+Stored Procedure: Close an account
+
+
+
+DELIMITER //
+
+CREATE PROCEDURE close_account(IN p_acc_no INT)
+BEGIN
+    DELETE FROM Account
+    WHERE acc_no = p_acc_no;
+END;
+//
+
+DELIMITER ;

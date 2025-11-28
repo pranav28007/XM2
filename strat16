@@ -1,0 +1,98 @@
+
+CREATE TABLE Customer (
+    cust_id INT PRIMARY KEY,
+    cname VARCHAR(50),
+    phone VARCHAR(15)
+);
+
+CREATE TABLE Plan (
+    plan_id INT PRIMARY KEY,
+    pname VARCHAR(50),
+    validity INT,
+    price DECIMAL(10,2)
+);
+
+CREATE TABLE Recharge_History (
+    hist_id INT PRIMARY KEY,
+    cust_id INT,
+    plan_id INT,
+    recharge_date DATE,
+    FOREIGN KEY (cust_id) REFERENCES Customer(cust_id),
+    FOREIGN KEY (plan_id) REFERENCES Plan(plan_id)
+);
+
+
+
+
+
+Customers using plans costing > average price
+
+
+
+SELECT cname
+FROM Customer
+WHERE cust_id IN (
+    SELECT cust_id
+    FROM Recharge_History H
+    JOIN Plan P ON H.plan_id = P.plan_id
+    WHERE P.price > (SELECT AVG(price) FROM Plan)
+);
+
+
+
+
+
+String functions → cname lower case + last 4 digits of phone
+
+
+
+SELECT LOWER(cname) AS lowercase_name,
+       RIGHT(phone, 4) AS last4_digits
+FROM Customer;
+
+
+
+Trigger: Prevent 2 recharges on same day by same customer
+
+
+
+
+
+
+DELIMITER //
+
+CREATE TRIGGER one_recharge_per_day
+BEFORE INSERT ON Recharge_History
+FOR EACH ROW
+BEGIN
+    IF EXISTS (
+        SELECT 1 FROM Recharge_History
+        WHERE cust_id = NEW.cust_id
+        AND recharge_date = NEW.recharge_date
+    ) THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Only one recharge per day is allowed!';
+    END IF;
+END;
+//
+
+DELIMITER ;
+
+
+Delete recharge records older than a given month/year
+
+
+
+
+
+DELIMITER //
+
+CREATE PROCEDURE delete_old_recharges(IN p_month INT, IN p_year INT)
+BEGIN
+    DELETE FROM Recharge_History
+    WHERE MONTH(recharge_date) < p_month
+      AND YEAR(recharge_date) <= p_year;
+END;
+//
+
+DELIMITER ;

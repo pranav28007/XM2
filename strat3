@@ -1,0 +1,76 @@
+
+CREATE TABLE Book (
+    book_id INT PRIMARY KEY,
+    title VARCHAR(100),
+    author_name VARCHAR(100),
+    copies_available INT
+);
+
+CREATE TABLE Member (
+    mem_id INT PRIMARY KEY,
+    mem_name VARCHAR(50),
+    phone VARCHAR(15)
+);
+
+CREATE TABLE Issue_Record (
+    issue_id INT PRIMARY KEY,
+    mem_id INT,
+    book_id INT,
+    issue_date DATE,
+    FOREIGN KEY (mem_id) REFERENCES Member(mem_id),
+    FOREIGN KEY (book_id) REFERENCES Book(book_id)
+);
+
+
+Members who borrowed more than 3 books
+
+SELECT mem_name
+FROM Member M
+WHERE mem_id IN (
+    SELECT mem_id
+    FROM Issue_Record
+    GROUP BY mem_id
+    HAVING COUNT(book_id) > 3
+);
+
+
+Prevent issuing a book if copies_available = 0
+
+
+
+DELIMITER //
+
+CREATE TRIGGER prevent_issue_if_no_copies
+BEFORE INSERT ON Issue_Record
+FOR EACH ROW
+BEGIN
+    DECLARE v_copies INT;
+    SELECT copies_available INTO v_copies
+    FROM Book
+    WHERE book_id = NEW.book_id;
+
+    IF v_copies <= 0 THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'No copies available for this book!';
+    END IF;
+END;
+//
+
+DELIMITER ;
+
+
+
+Stored Procedure: Delete issue records for a given member
+
+
+
+
+DELIMITER //
+
+CREATE PROCEDURE delete_issues_by_member(IN p_mem_id INT)
+BEGIN
+    DELETE FROM Issue_Record
+    WHERE mem_id = p_mem_id;
+END;
+//
+
+DELIMITER ;

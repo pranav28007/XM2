@@ -1,0 +1,79 @@
+
+CREATE TABLE Doctor (
+    doc_id INT PRIMARY KEY,
+    doc_name VARCHAR(50),
+    specialization VARCHAR(50),
+    experience INT,
+    salary DECIMAL(10,2)
+);
+
+CREATE TABLE Patient (
+    pat_id INT PRIMARY KEY,
+    pat_name VARCHAR(50),
+    address VARCHAR(100),
+    contact_no VARCHAR(15)
+);
+
+CREATE TABLE Appointment (
+    appointment_id INT PRIMARY KEY,
+    doc_id INT,
+    pat_id INT,
+    appointment_date DATE,
+    FOREIGN KEY (doc_id) REFERENCES Doctor(doc_id),
+    FOREIGN KEY (pat_id) REFERENCES Patient(pat_id)
+);
+
+
+b) Query
+
+Display Patient Name, Doctor Name, Specialization for each consultation:
+
+
+
+SELECT p.pat_name, d.doc_name, d.specialization
+FROM Appointment a
+JOIN Patient p ON a.pat_id = p.pat_id
+JOIN Doctor d ON a.doc_id = d.doc_id;
+
+
+
+Prevent duplicate Appointment_ID entries (extra validation beyond PRIMARY KEY):
+
+
+
+
+
+DELIMITER //
+CREATE TRIGGER prevent_duplicate_appointment
+BEFORE INSERT ON Appointment
+FOR EACH ROW
+BEGIN
+    IF EXISTS (SELECT 1 FROM Appointment WHERE appointment_id = NEW.appointment_id) THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Duplicate Appointment_ID not allowed';
+    END IF;
+END //
+DELIMITER ;
+
+
+
+
+
+Increase Doctor Salary by 10% when experience > 5 years
+
+
+
+
+
+DELIMITER //
+CREATE PROCEDURE Increase_Salary()
+BEGIN
+    UPDATE Doctor
+    SET salary = salary * 1.10
+    WHERE experience > 5;
+END //
+DELIMITER ;
+
+
+
+CALL Increase_Salary();

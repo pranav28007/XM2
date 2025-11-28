@@ -1,0 +1,74 @@
+
+CREATE TABLE Student (
+    sid INT PRIMARY KEY,
+    sname VARCHAR(50),
+    branch VARCHAR(30)
+);
+
+CREATE TABLE Exam (
+    exam_id INT PRIMARY KEY,
+    subject_name VARCHAR(50),
+    exam_date DATE
+);
+
+CREATE TABLE Marks (
+    sid INT,
+    exam_id INT,
+    marks INT,
+    result_published CHAR(1),
+    PRIMARY KEY(sid, exam_id),
+    FOREIGN KEY (sid) REFERENCES Student(sid),
+    FOREIGN KEY (exam_id) REFERENCES Exam(exam_id)
+);
+
+
+Students whose marks > branch average
+
+
+
+
+SELECT s.sname, m.marks, s.branch
+FROM Student s
+JOIN Marks m ON s.sid = m.sid
+WHERE m.marks > (
+    SELECT AVG(m2.marks)
+    FROM Student s2
+    JOIN Marks m2 ON s2.sid = m2.sid
+    WHERE s2.branch = s.branch
+);
+
+
+Prevent updating marks after result publication
+
+
+
+
+DELIMITER //
+
+CREATE TRIGGER prevent_marks_update
+BEFORE UPDATE ON Marks
+FOR EACH ROW
+BEGIN
+    IF OLD.result_published = 'Y' THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Marks cannot be updated after result publication!';
+    END IF;
+END;
+//
+
+DELIMITER ;
+
+
+Delete exam records older than a given year
+
+
+
+DELIMITER //
+
+CREATE PROCEDURE delete_old_exams(IN p_year INT)
+BEGIN
+    DELETE FROM Exam
+    WHERE YEAR(exam_date) < p_year;
+END;
+//
+
+DELIMITER ;

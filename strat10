@@ -1,0 +1,86 @@
+
+CREATE TABLE Faculty (
+    fac_id INT PRIMARY KEY,
+    fname VARCHAR(50),
+    dept VARCHAR(50)
+);
+
+CREATE TABLE Project (
+    proj_id INT PRIMARY KEY,
+    title VARCHAR(100),
+    funding DECIMAL(12,2)
+);
+
+CREATE TABLE Publication (
+    pub_id INT PRIMARY KEY,
+    proj_id INT,
+    fac_id INT,
+    pub_title VARCHAR(100),
+    FOREIGN KEY (proj_id) REFERENCES Project(proj_id),
+    FOREIGN KEY (fac_id) REFERENCES Faculty(fac_id)
+);
+
+
+
+
+Faculty working on more than 2 funded projects
+
+
+
+
+SELECT fname
+FROM Faculty
+WHERE fac_id IN (
+    SELECT fac_id
+    FROM Publication P
+    JOIN Project R ON P.proj_id = R.proj_id
+    WHERE R.funding > 0
+    GROUP BY fac_id
+    HAVING COUNT(DISTINCT P.proj_id) > 2
+);
+
+
+
+Prevent duplicate publication titles under same project
+
+
+
+
+
+
+DELIMITER //
+
+CREATE TRIGGER prevent_dup_title
+BEFORE INSERT ON Publication
+FOR EACH ROW
+BEGIN
+    IF EXISTS (
+        SELECT 1 FROM Publication
+        WHERE proj_id = NEW.proj_id
+          AND pub_title = NEW.pub_title
+    ) THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Duplicate publication title for this project!';
+    END IF;
+END;
+//
+
+DELIMITER ;
+
+
+
+Stored Procedure: Delete all publications by project_id
+
+
+
+
+
+DELIMITER //
+
+CREATE PROCEDURE delete_pub_by_project(IN p_proj_id INT)
+BEGIN
+    DELETE FROM Publication WHERE proj_id = p_proj_id;
+END;
+//
+
+DELIMITER ;

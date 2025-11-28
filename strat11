@@ -1,0 +1,94 @@
+
+CREATE TABLE User_Table (
+    user_id INT PRIMARY KEY,
+    uname VARCHAR(50),
+    age INT,
+    gender VARCHAR(10)
+);
+
+CREATE TABLE Workout (
+    workout_id INT PRIMARY KEY,
+    workout_name VARCHAR(50),
+    calories INT
+);
+
+CREATE TABLE Progress_Log (
+    log_id INT PRIMARY KEY,
+    user_id INT,
+    workout_id INT,
+    log_date DATE,
+    duration INT, -- minutes
+    FOREIGN KEY (user_id) REFERENCES User_Table(user_id),
+    FOREIGN KEY (workout_id) REFERENCES Workout(workout_id)
+);
+
+
+
+
+Users burned > 500 calories total
+
+
+
+SELECT U.uname
+FROM User_Table U
+JOIN Progress_Log P ON U.user_id = P.user_id
+JOIN Workout W ON P.workout_id = W.workout_id
+GROUP BY U.user_id
+HAVING SUM(W.calories) > 500;
+
+
+
+Create View
+
+
+
+
+
+CREATE VIEW UserWorkoutView AS
+SELECT U.uname, W.workout_name, P.duration
+FROM User_Table U
+JOIN Progress_Log P ON U.user_id = P.user_id
+JOIN Workout W ON P.workout_id = W.workout_id;
+
+
+
+
+Trigger: Prevent duration < 10
+
+
+
+DELIMITER //
+
+CREATE TRIGGER prevent_short_workout
+BEFORE INSERT ON Progress_Log
+FOR EACH ROW
+BEGIN
+    IF NEW.duration < 10 THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Workout duration must be at least 10 minutes!';
+    END IF;
+END;
+//
+
+DELIMITER ;
+
+
+
+
+
+Delete logs of a user
+
+
+
+
+
+
+DELIMITER //
+
+CREATE PROCEDURE delete_logs_by_user(IN p_user_id INT)
+BEGIN
+    DELETE FROM Progress_Log WHERE user_id = p_user_id;
+END;
+//
+
+DELIMITER ;

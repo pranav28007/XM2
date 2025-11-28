@@ -1,0 +1,83 @@
+
+CREATE TABLE Customer (
+    cust_id INT PRIMARY KEY,
+    cname VARCHAR(50),
+    type VARCHAR(20),
+    phone VARCHAR(15)
+);
+
+CREATE TABLE Room (
+    room_no INT PRIMARY KEY,
+    type VARCHAR(10), -- AC / Non-AC
+    rent DECIMAL(10,2),
+    capacity INT
+);
+
+CREATE TABLE Booking (
+    booking_id INT PRIMARY KEY,
+    cust_id INT,
+    room_no INT,
+    check_in DATE,
+    check_out DATE,
+    FOREIGN KEY (cust_id) REFERENCES Customer(cust_id),
+    FOREIGN KEY (room_no) REFERENCES Room(room_no)
+);
+
+
+Customers who booked more than 3 rooms
+
+
+
+SELECT cname
+FROM Customer
+WHERE cust_id IN (
+    SELECT cust_id
+    FROM Booking
+    GROUP BY cust_id
+    HAVING COUNT(room_no) > 3
+);
+
+
+
+
+Prevent booking if room is already occupied
+
+
+
+
+DELIMITER //
+
+CREATE TRIGGER prevent_double_booking
+BEFORE INSERT ON Booking
+FOR EACH ROW
+BEGIN
+    IF EXISTS (
+        SELECT 1 FROM Booking
+        WHERE room_no = NEW.room_no
+          AND NEW.check_in < check_out
+          AND NEW.check_out > check_in
+    ) THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Room is already booked for selected dates!';
+    END IF;
+END;
+//
+
+DELIMITER ;
+
+
+Calculate total bill based on customer_id
+
+
+
+DELIMITER //
+
+CREATE PROCEDURE calculate_total_bill(IN p_cust_id INT)
+BEGIN
+    SELECT SUM(R.rent * DATEDIFF(B.check_out, B.check_in)) AS total_bill
+    FROM Booking B
+    JOIN Room R ON B.room_no = R.room_no
+    WHERE B.cust_id = p_cust_id;
+END;
+//
+
+DELIMITER ;

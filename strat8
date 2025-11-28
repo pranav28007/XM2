@@ -1,0 +1,89 @@
+
+CREATE TABLE User_Table (
+    user_id INT PRIMARY KEY,
+    uname VARCHAR(50),
+    email VARCHAR(50)
+);
+
+CREATE TABLE Movie (
+    movie_id INT PRIMARY KEY,
+    title VARCHAR(100),
+    genre VARCHAR(30),
+    duration DECIMAL(5,2)
+);
+
+CREATE TABLE Watch_History (
+    watch_id INT PRIMARY KEY,
+    user_id INT,
+    movie_id INT,
+    watch_date DATE,
+    FOREIGN KEY (user_id) REFERENCES User_Table(user_id),
+    FOREIGN KEY (movie_id) REFERENCES Movie(movie_id)
+);
+
+CREATE TABLE Review (
+    review_id INT PRIMARY KEY,
+    user_id INT,
+    movie_id INT,
+    rating DECIMAL(2,1),
+    review_text VARCHAR(200),
+    FOREIGN KEY (user_id) REFERENCES User_Table(user_id),
+    FOREIGN KEY (movie_id) REFERENCES Movie(movie_id)
+);
+
+
+Users who watched more than 5 movies in a month
+
+
+SELECT uname
+FROM User_Table U
+WHERE user_id IN (
+    SELECT user_id
+    FROM Watch_History
+    WHERE MONTH(watch_date) = MONTH(CURDATE())
+      AND YEAR(watch_date) = YEAR(CURDATE())
+    GROUP BY user_id
+    HAVING COUNT(movie_id) > 5
+);
+
+
+Prevent duplicate reviews for same movie by same user
+
+
+
+
+
+DELIMITER //
+
+CREATE TRIGGER prevent_duplicate_review
+BEFORE INSERT ON Review
+FOR EACH ROW
+BEGIN
+    IF EXISTS (
+        SELECT 1 FROM Review
+        WHERE user_id = NEW.user_id
+          AND movie_id = NEW.movie_id
+    ) THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Duplicate review for same movie by same user not allowed!';
+    END IF;
+END;
+//
+
+DELIMITER ;
+
+
+
+Delete a user and all associated watch history
+
+
+DELIMITER //
+
+CREATE PROCEDURE delete_user_and_history(IN p_user_id INT)
+BEGIN
+    DELETE FROM Review WHERE user_id = p_user_id;
+    DELETE FROM Watch_History WHERE user_id = p_user_id;
+    DELETE FROM User_Table WHERE user_id = p_user_id;
+END;
+//
+
+DELIMITER ;
