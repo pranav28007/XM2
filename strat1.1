@@ -1,0 +1,83 @@
+
+CREATE TABLE Student (
+    sid INT PRIMARY KEY,
+    sname VARCHAR(50),
+    branch VARCHAR(30)
+);
+
+CREATE TABLE Courses (
+    cid INT PRIMARY KEY,
+    cname VARCHAR(50),
+    cfee INT
+);
+
+CREATE TABLE Register (
+    sid INT,
+    cid INT,
+    day DATE,
+    FOREIGN KEY (sid) REFERENCES Student(sid),
+    FOREIGN KEY (cid) REFERENCES Courses(cid)
+);
+
+
+
+
+
+
+
+
+b) Students Registered for More Than 2 Courses (Correlated Subquery)
+
+
+
+
+
+SELECT s.sid, s.sname, s.branch
+FROM Student s
+WHERE (SELECT COUNT(*) FROM Register r WHERE r.sid = s.sid) > 2;
+
+
+
+Trigger to Prevent Duplicate Course Registration on Same Day
+
+
+
+
+DELIMITER $$
+
+CREATE TRIGGER prevent_duplicate_registration
+BEFORE INSERT ON Register
+FOR EACH ROW
+BEGIN
+    IF EXISTS (
+	SELECT * FROM Register
+	WHERE sid = NEW.sid AND cid = NEW.cid AND day = NEW.day
+    ) THEN
+	SIGNAL SQLSTATE '45000'
+	SET MESSAGE_TEXT = 'Duplicate registration not allowed on the same day!';
+    END IF;
+END$$
+
+DELIMITER ;
+
+
+
+
+Stored Procedure to Delete Student Record Using student_id
+
+
+
+
+
+DELIMITER $$
+
+CREATE PROCEDURE delete_student(IN stud_id INT)
+BEGIN
+    DELETE FROM Register WHERE sid = stud_id;
+    DELETE FROM Student WHERE sid = stud_id;
+END$$
+
+DELIMITER ;
+
+
+CALL delete_student(3);
